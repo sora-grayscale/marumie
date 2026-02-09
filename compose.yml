@@ -1,0 +1,83 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    ports:
+      - "3001:3000"
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8080
+    networks:
+      - mirai-internal
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Containerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - mirai-internal
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro,z
+      - ./db/ssl:/etc/ssl/db:z
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-mirai}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-mirai_kojin}
+    ports:
+      - "5432:5432"
+    networks:
+      - mirai-internal
+    command: >
+      -c ssl=off
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mirai} -d ${POSTGRES_DB:-mirai_kojin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  backup:
+    build:
+      context: ./backup
+      dockerfile: Containerfile
+    volumes:
+      - db-data:/var/lib/postgresql/data:ro
+      - backup-data:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PGHOST=db
+      - PGUSER=${POSTGRES_USER:-mirai}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+      - PGDATABASE=${POSTGRES_DB:-mirai_kojin}
+      - BACKUP_ENCRYPTION_KEY=${BACKUP_ENCRYPTION_KEY}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+    networks:
+      - mirai-internal
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  backup-data:
+
+networks:
+  mirai-internal:
+    driver: bridge

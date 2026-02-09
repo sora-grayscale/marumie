@@ -1,100 +1,215 @@
-# みらいまる見え政治資金
+# mirai-kojin - 個人・家族向けプライベート家計簿
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![CI](https://github.com/team-mirai/marumie/actions/workflows/ci.yml/badge.svg)](https://github.com/team-mirai/marumie/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/team-mirai/marumie/branch/develop/graph/badge.svg)](https://codecov.io/gh/team-mirai/marumie)
+[![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white)](https://nextjs.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
-[![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com/)
-[![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![Biome](https://img.shields.io/badge/Biome-60A5FA?logo=biome&logoColor=white)](https://biomejs.dev/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/team-mirai/marumie)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Podman](https://img.shields.io/badge/Podman-892CA0?logo=podman&logoColor=white)](https://podman.io/)
 
-> 政治資金の透明性向上を目指すオープンソースダッシュボード
+> [team-mirai/marumie](https://github.com/team-mirai/marumie)（政治資金可視化プラットフォーム）をベースに、
+> **個人・家族向けの完全プライベート家計簿アプリ**として再構築したプロジェクトです。
 
-政治家・政治団体が会計データを透明に公開し、市民が政治資金の流れを理解しやすくするためのWebアプリケーションです。クラウド会計ソフト（MFクラウド・freee等）から取得したデータを可視化し、政治資金報告書の作成も支援します。
+## 主な特徴
 
-チームみらい永田町エンジニアチームが開発しています。
-
-## プロジェクト構成
-
-このプロジェクトは以下のディレクトリ構成で構築されています：
-
-### ディレクトリ構造
-
-```
-marumie/
-├── webapp/           # フロントエンド（一般ユーザー向け）
-│   ├── src/
-│   │   ├── app/           # Next.js App Router
-│   │   ├── client/        # クライアントサイドコンポーネント
-│   │   ├── server/contexts/ # Bounded Context ベース構成
-│   │   │   └── public-finance/  # 政治資金データの公開・可視化
-│   │   └── types/         # 型定義
-│   ├── tests/             # テストファイル
-│   └── package.json
-├── admin/            # 管理画面
-│   ├── src/
-│   │   ├── app/           # Next.js App Router
-│   │   ├── client/        # クライアントサイドコンポーネント
-│   │   ├── server/contexts/ # Bounded Context ベース構成
-│   │   │   ├── auth/      # 認証関連処理
-│   │   │   ├── data-import/  # 取引データ取り込み
-│   │   │   ├── report/    # 政治資金報告書XMLエクスポート
-│   │   │   └── shared/    # コンテキスト横断共有
-│   │   ├── types/         # 型定義
-│   │   └── middleware.ts
-│   ├── tests/             # テストファイル
-│   └── package.json
-├── shared/           # 共通モデル・型定義・ユーティリティ
-│   ├── models/       # 共通データモデル
-│   └── utils/        # 共通ユーティリティ関数
-├── data/             # サンプルデータ
-├── supabase/         # Supabaseローカル開発環境設定
-├── prisma/           # データベーススキーマ・マイグレーション
-└── docs/             # 設計ドキュメント（その時点での設計メモなので必ずしも正確ではないです）
-```
-
-### 各ディレクトリの役割
-
-- **webapp/**: 一般ユーザー向けのフロントエンドアプリケーション（政治資金データの可視化）
-- **admin/**: 管理者向けの管理画面（データ登録・管理機能）
-- **shared/**: webapp と admin で共通して使用するモデル、型定義、ユーティリティ関数
-- **data/**: サンプルデータファイル
-- **supabase/**: Supabaseローカル開発環境の設定ファイルとテンプレート
-- **prisma/**: データベーススキーマ定義、マイグレーションファイル、シードデータ
-- **docs/**: プロジェクトの設計ドキュメント
+- **完全プライベート**: Podman Compose でセルフホスト。データは一切外部に出ない
+- **E2EE多層防御**: アプリケーション層暗号化 (AES-256-GCM) + DB TDE + TLS通信
+- **Passkey/WebAuthn認証**: パスワードレスのモダンな認証
+- **家族共有**: owner / editor / viewer のロール管理
+- **6金融機関対応**: 楽天銀行・三井住友銀行・住信SBI・三井住友Olive・楽天カード・JCB
+- **豊富な可視化**: サンキー図・月次推移・予算管理・資産ポートフォリオ
+- **暗号化バックアップ**: 自動/手動の暗号化バックアップ・リストア
 
 ## 技術スタック
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Backend**: Prisma ORM, Supabase
-- **Styling**: Tailwind CSS v4
-- **Charts**: Recharts, ApexCharts, Nivo
-- **Database**: PostgreSQL (via Supabase)
-- **Development**: pnpm, Biome
-- **Testing**: Jest
+| レイヤー | 技術 |
+|----------|------|
+| Frontend | Next.js 15 + React 19 + TypeScript + Tailwind CSS v4 |
+| Charts | Recharts + Nivo (サンキー図) |
+| Backend API | Rust (Axum) + SQLx |
+| Database | PostgreSQL 16 (TDE + SSL) |
+| 認証 | Passkey (WebAuthn) + Argon2id パスワード |
+| 暗号化 | AES-256-GCM + Argon2id鍵導出 + リカバリーキー |
+| インフラ | Podman Compose (4コンテナ) |
+| VCS | Jujutsu (jj) |
 
-## 画面イメージ
+## アーキテクチャ
 
-![アプリケーションのスクリーンショット](docs/images/screenshot.png)
+```
+┌─────────────────────────────────────────────────────┐
+│                  Podman Network                      │
+│                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
+│  │   Next.js    │  │   Rust API   │  │ PostgreSQL │ │
+│  │   Frontend   │──│   (Axum)     │──│   (TDE)    │ │
+│  │   :3000      │  │   :8080      │  │   :5432    │ │
+│  └──────────────┘  └──────────────┘  └────────────┘ │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐  │
+│  │            Backup Cron Container                │  │
+│  └────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
 
-※ 表示されている値は実際の値ではありません。
+詳細は [ARCHITECTURE.md](ARCHITECTURE.md) を参照してください。
 
+## ディレクトリ構成
 
-## ローカル開発手順
+```
+mirai-kojin/
+├── frontend/          # Next.js 15 フロントエンド
+│   ├── src/app/       # App Router (10ページ)
+│   ├── src/components/# UI + チャート + レイアウト
+│   ├── src/lib/       # APIクライアント・認証ヘルパー
+│   └── Containerfile
+├── api/               # Rust (Axum) APIサーバー
+│   ├── src/routes/    # RESTful APIエンドポイント
+│   ├── src/crypto/    # E2EE暗号化モジュール
+│   ├── src/csv/       # 6金融機関CSVパーサー
+│   ├── src/auth/      # WebAuthn + セッション
+│   ├── migrations/    # SQLxマイグレーション (8ファイル)
+│   └── Containerfile
+├── cli/               # CSV変換CLIツール
+│   ├── src/parsers/   # 6金融機関パーサー
+│   ├── src/commands/  # convert / detect / import
+│   └── Containerfile
+├── backup/            # バックアップコンテナ
+│   ├── backup.sh      # 暗号化バックアップ
+│   └── restore.sh     # 復元スクリプト
+├── scripts/           # セットアップスクリプト
+│   ├── setup.sh       # 初回セットアップ
+│   ├── generate-certs.sh
+│   └── init-db.sh
+├── compose.yml        # Podman Compose設定
+├── ARCHITECTURE.md    # 詳細設計書
+└── .env.example       # 環境変数テンプレート
+```
 
-ローカル開発環境のセットアップ手順は [開発環境セットアップガイド](docs/getting-started.md) を参照してください。
+## 対応金融機関
+
+| 種別 | 金融機関 | エンコーディング |
+|------|---------|----------------|
+| 銀行 | 楽天銀行 | Shift-JIS / UTF-8 |
+| 銀行 | 三井住友銀行 | Shift-JIS |
+| 銀行 | 住信SBI | UTF-8 |
+| カード | 三井住友Olive | UTF-8 |
+| カード | 楽天カード | Shift-JIS |
+| カード | JCB | Shift-JIS |
+
+## セットアップ
+
+### 前提条件
+
+- Podman + podman-compose
+- Rust 1.84+ (CLI単体利用時)
+- Node.js 22+ (フロントエンド開発時)
+
+### クイックスタート
+
+```bash
+# 1. リポジトリクローン
+jj git clone https://github.com/sora-grayscale/marumie.git mirai-kojin
+cd mirai-kojin
+
+# 2. 初回セットアップ (SSL証明書生成 + DB起動 + 全サービス起動)
+./scripts/setup.sh
+
+# 3. ブラウザでアクセス
+open http://localhost:3000
+```
+
+### 手動セットアップ
+
+```bash
+# 環境変数設定
+cp .env.example .env
+# .env を編集して各値を設定
+
+# SSL証明書生成
+./scripts/generate-certs.sh
+
+# Podman Compose で起動
+podman compose up -d
+
+# DB初期化 (初回のみ)
+./scripts/init-db.sh
+```
+
+### CLI CSV変換ツール
+
+```bash
+cd cli
+
+# ビルド
+cargo build --release
+
+# 金融機関自動判定
+./target/release/mirai-cli detect input.csv
+
+# 統一フォーマットに変換
+./target/release/mirai-cli convert input.csv -o output.csv --bank rakuten-bank
+
+# ディレクトリ一括変換 (自動判定)
+./target/release/mirai-cli convert ./csv_dir/ -o ./output_dir/ --auto
+
+# APIに直接インポート
+./target/release/mirai-cli import input.csv --api-url http://localhost:8080
+```
+
+## 画面構成
+
+| パス | 機能 |
+|------|------|
+| `/` | ログイン (Passkey / パスワード) |
+| `/dashboard` | メインダッシュボード (サンキー図/月次推移/予算/資産) |
+| `/transactions` | 取引一覧 (検索/フィルタ/ページネーション) |
+| `/import` | CSVインポート (アップロード/プレビュー/取込) |
+| `/accounts` | 口座・カード管理 |
+| `/budget` | 予算設定・カテゴリ別管理 |
+| `/settings` | ユーザー設定 (Passkey/パスワード/家族招待) |
+| `/backup` | バックアップ・エクスポート |
+| `/admin` | 管理者用 (ユーザー管理・権限) |
+
+## 権限ロール
+
+| ロール | 閲覧 | 取引登録 | CSV取込 | 設定変更 | ユーザー管理 |
+|--------|:----:|:-------:|:-------:|:-------:|:----------:|
+| owner  | ○   | ○      | ○      | ○      | ○         |
+| editor | ○   | ○      | ○      | ×      | ×         |
+| viewer | ○   | ×      | ×      | ×      | ×         |
+
+## セキュリティ
+
+### E2EE多層防御
+
+1. **アプリケーション層**: 金額・摘要・カテゴリ等をAES-256-GCMで暗号化してDB保存
+2. **DB層**: PostgreSQL TDE (LUKS暗号化ボリューム)
+3. **通信層**: TLS 1.3 + SSL接続
+
+### 鍵管理
+
+- マスターパスワードからArgon2idで暗号化キーを導出
+- Data Encryption Key (DEK) はマスターキーでラップしてDB保存
+- リカバリーキーでパスワード紛失時のDEK復旧が可能
+
+## 開発
+
+```bash
+# フロントエンド開発
+cd frontend && pnpm install && pnpm dev
+
+# Rust API開発
+cd api && cargo run
+
+# CLI開発
+cd cli && cargo run -- detect sample.csv
+```
+
+## 元プロジェクト
+
+このプロジェクトは [team-mirai/marumie](https://github.com/team-mirai/marumie) (AGPL-3.0) をforkし、
+個人・家族向けに再構築したものです。元プロジェクトの貢献者に感謝します。
 
 ## ライセンス
 
-このプロジェクトは [GNU Affero General Public License v3.0](LICENSE) の下でライセンスされています。
-
-### コントリビューション
-
-このプロジェクトへのコントリビューションを行う場合は、[コントリビューターライセンス契約(CLA)](CLA.md) への同意が必要です。
-
-## ライセンス表示
-
-このソフトウェアを使用する場合は、適切なライセンス表示を行ってください。詳細は [LICENSE](LICENSE) ファイルをご確認ください。
+[GNU Affero General Public License v3.0](LICENSE)

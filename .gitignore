@@ -73,3 +73,26 @@ logs
 
 # docs
 docs/report_format.xlsx
+
+# SSL certificates (generated locally)
+db/ssl/*.crt
+db/ssl/*.key
+!db/ssl/.gitkeep
+
+# Backup data
+/backups/
+
+# Rust build artifacts
+api/target/
+cli/target/
+
+# Node modules (all)
+**/node_modules/
+
+# Next.js build output
+frontend/.next/
+frontend/out/
+
+# Frontend environment
+frontend/.env*
+!frontend/.env.example

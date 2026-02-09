@@ -1,0 +1,30 @@
+[package]
+name = "mirai-kojin-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8"
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "tls-rustls", "migrate", "uuid", "chrono", "json"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+http = "1"
+argon2 = "0.5"
+aes-gcm = "0.10"
+rand = "0.8"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+webauthn-rs = { version = "0.5", features = ["danger-allow-state-serialisation"] }
+webauthn-rs-proto = "0.5"
+csv = "1"
+encoding_rs = "0.8"
+sha2 = "0.10"
+hex = "0.4"
+thiserror = "2"
+dotenvy = "0.15"
+url = "2"

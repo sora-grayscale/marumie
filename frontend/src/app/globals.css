@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  /* Dark mode (default) - marumie green palette adapted */
   --color-background: oklch(0.141 0.005 285.823);
   --color-foreground: oklch(0.985 0 0);
 
@@ -10,8 +11,9 @@
   --color-popover: oklch(0.21 0.006 285.885);
   --color-popover-foreground: oklch(0.985 0 0);
 
-  --color-primary: oklch(0.546 0.245 262.881);
-  --color-primary-foreground: oklch(0.97 0.014 254.604);
+  /* Primary: marumie green */
+  --color-primary: oklch(0.55 0.15 168);
+  --color-primary-foreground: oklch(0.98 0 0);
 
   --color-secondary: oklch(0.274 0.006 286.033);
   --color-secondary-foreground: oklch(0.985 0 0);
@@ -27,76 +29,77 @@
 
   --color-border: oklch(1 0 0 / 10%);
   --color-input: oklch(1 0 0 / 15%);
-  --color-ring: oklch(0.556 0 0);
+  --color-ring: oklch(0.55 0.15 168);
 
-  --color-chart-1: oklch(0.809 0.105 251.813);
-  --color-chart-2: oklch(0.623 0.214 259.815);
-  --color-chart-3: oklch(0.546 0.245 262.881);
-  --color-chart-4: oklch(0.488 0.243 264.376);
-  --color-chart-5: oklch(0.424 0.199 265.638);
+  --color-chart-1: oklch(0.65 0.18 165);
+  --color-chart-2: oklch(0.55 0.15 168);
+  --color-chart-3: oklch(0.45 0.12 170);
+  --color-chart-4: oklch(0.704 0.191 22.216);
+  --color-chart-5: oklch(0.6 0.2 260);
 
-  --color-sidebar: oklch(0.21 0.006 285.885);
+  --color-sidebar: oklch(0.18 0.01 168);
   --color-sidebar-foreground: oklch(0.985 0 0);
-  --color-sidebar-primary: oklch(0.623 0.214 259.815);
-  --color-sidebar-primary-foreground: oklch(0.97 0.014 254.604);
-  --color-sidebar-accent: oklch(0.274 0.006 286.033);
+  --color-sidebar-primary: oklch(0.55 0.15 168);
+  --color-sidebar-primary-foreground: oklch(0.98 0 0);
+  --color-sidebar-accent: oklch(0.24 0.015 168);
   --color-sidebar-accent-foreground: oklch(0.985 0 0);
-  --color-sidebar-border: oklch(0.225 0.004 286);
-  --color-sidebar-ring: oklch(0.439 0 0);
+  --color-sidebar-border: oklch(0.22 0.008 168);
+  --color-sidebar-ring: oklch(0.55 0.15 168);
 
   --color-income: oklch(0.723 0.219 149.579);
   --color-expense: oklch(0.577 0.245 27.325);
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
-/* Light mode overrides */
+/* Light mode - marumie-inspired green palette */
 .light {
-  --color-background: oklch(0.985 0 0);
-  --color-foreground: oklch(0.141 0.005 285.823);
+  --color-background: #f0f9f7;
+  --color-foreground: #1f2937;
 
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.141 0.005 285.823);
+  --color-card: #ffffff;
+  --color-card-foreground: #1f2937;
 
-  --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.141 0.005 285.823);
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1f2937;
 
-  --color-primary: oklch(0.546 0.245 262.881);
-  --color-primary-foreground: oklch(1 0 0);
+  /* Primary: marumie green #238778 */
+  --color-primary: #238778;
+  --color-primary-foreground: #ffffff;
 
-  --color-secondary: oklch(0.95 0.006 286.033);
-  --color-secondary-foreground: oklch(0.141 0.005 285.823);
+  --color-secondary: #f3f4f6;
+  --color-secondary-foreground: #1f2937;
 
-  --color-muted: oklch(0.95 0.006 286.033);
-  --color-muted-foreground: oklch(0.439 0.015 286.067);
+  --color-muted: #f3f4f6;
+  --color-muted-foreground: #6b7280;
 
-  --color-accent: oklch(0.95 0.006 286.033);
-  --color-accent-foreground: oklch(0.141 0.005 285.823);
+  --color-accent: #f0fdf4;
+  --color-accent-foreground: #1f2937;
 
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-destructive-foreground: oklch(1 0 0);
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
 
-  --color-border: oklch(0 0 0 / 10%);
-  --color-input: oklch(0 0 0 / 15%);
-  --color-ring: oklch(0.556 0 0);
+  --color-border: #e5e7eb;
+  --color-input: #e5e7eb;
+  --color-ring: #2aa693;
 
-  --color-chart-1: oklch(0.546 0.245 262.881);
-  --color-chart-2: oklch(0.623 0.214 259.815);
-  --color-chart-3: oklch(0.488 0.243 264.376);
-  --color-chart-4: oklch(0.424 0.199 265.638);
-  --color-chart-5: oklch(0.809 0.105 251.813);
+  --color-chart-1: #238778;
+  --color-chart-2: #2aa693;
+  --color-chart-3: #30bca7;
+  --color-chart-4: #dc2626;
+  --color-chart-5: #3b82f6;
 
-  --color-sidebar: oklch(0.97 0.006 285.885);
-  --color-sidebar-foreground: oklch(0.141 0.005 285.823);
-  --color-sidebar-primary: oklch(0.546 0.245 262.881);
-  --color-sidebar-primary-foreground: oklch(1 0 0);
-  --color-sidebar-accent: oklch(0.93 0.006 286.033);
-  --color-sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --color-sidebar-border: oklch(0.88 0.004 286);
-  --color-sidebar-ring: oklch(0.556 0 0);
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #1f2937;
+  --color-sidebar-primary: #238778;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #f0fdf4;
+  --color-sidebar-accent-foreground: #1f2937;
+  --color-sidebar-border: #e5e7eb;
+  --color-sidebar-ring: #2aa693;
 
-  --color-income: oklch(0.527 0.219 149.579);
-  --color-expense: oklch(0.505 0.213 27.325);
+  --color-income: #238778;
+  --color-expense: #dc2626;
 }
 
 html, body {
@@ -105,7 +108,21 @@ html, body {
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: "Noto Sans JP", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
   background: var(--color-background);
   color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus indicators - keyboard only (marumie style) */
+*:focus { outline: none; }
+*:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions */
+* {
+  scroll-behavior: smooth;
 }

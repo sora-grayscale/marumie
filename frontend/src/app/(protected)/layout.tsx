@@ -146,7 +146,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header userName={userName} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 sm:p-8">{children}</main>
       </div>
       {mustChangePassword && (
         <ForcePasswordChangeModal onSuccess={handlePasswordChanged} />

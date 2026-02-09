@@ -5,7 +5,6 @@ import { api } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -81,7 +80,7 @@ export default function AccountsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">口座管理</h1>
+        <h1 className="text-[20px] sm:text-[27px] font-bold">口座管理</h1>
         <Button onClick={() => setDialogOpen(true)}>
           <Plus size={16} className="mr-2" />
           口座を追加
@@ -146,47 +145,49 @@ export default function AccountsPage() {
         </DialogContent>
       </Dialog>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>登録済み口座</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-pulse text-muted-foreground">読み込み中...</div>
-            </div>
-          ) : accounts.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">口座が登録されていません</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>口座名</TableHead>
-                  <TableHead>種別</TableHead>
-                  <TableHead>金融機関</TableHead>
-                  <TableHead className="text-right">残高</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {accounts.map((account) => {
-                  const Icon = accountTypeIcons[account.account_type] || Landmark;
-                  return (
-                    <TableRow key={account.id}>
-                      <TableCell className="flex items-center gap-2">
-                        <Icon size={16} className="text-muted-foreground" />
-                        {account.name}
-                      </TableCell>
-                      <TableCell>{accountTypeLabels[account.account_type] || account.account_type}</TableCell>
-                      <TableCell>{account.institution || "-"}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(account.balance)}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-pulse text-muted-foreground">読み込み中...</div>
+        </div>
+      ) : accounts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Landmark size={40} className="mb-4 opacity-30" />
+            <p>口座が登録されていません</p>
+            <Button variant="outline" className="mt-4" onClick={() => setDialogOpen(true)}>
+              <Plus size={16} className="mr-2" />
+              口座を追加
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {accounts.map((account) => {
+            const Icon = accountTypeIcons[account.account_type] || Landmark;
+            return (
+              <Card key={account.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6 pb-6">
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0 p-3 rounded-xl bg-primary/10">
+                      <Icon size={24} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground">{account.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {accountTypeLabels[account.account_type] || account.account_type}
+                        {account.institution ? ` · ${account.institution}` : ""}
+                      </p>
+                      <p className="text-2xl font-bold text-foreground mt-3">
+                        {formatCurrency(account.balance)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

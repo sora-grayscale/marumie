@@ -47,7 +47,7 @@ export default function BackupPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">バックアップ</h1>
+      <h1 className="text-[20px] sm:text-[27px] font-bold">バックアップ</h1>
 
       {status && (
         <div className="rounded-md bg-muted p-3 text-sm">{status}</div>

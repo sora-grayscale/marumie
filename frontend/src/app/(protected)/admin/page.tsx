@@ -113,7 +113,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="text-[20px] sm:text-[27px] font-bold flex items-center gap-2">
           <ShieldCheck size={24} />
           ユーザー管理
         </h1>

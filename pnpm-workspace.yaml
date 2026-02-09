@@ -2,6 +2,7 @@ packages:
   - 'packages/*'
   - 'admin'
   - 'webapp'
+  - 'frontend'
 
 onlyBuiltDependencies:
   - supabase

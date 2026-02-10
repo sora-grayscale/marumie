@@ -6,7 +6,7 @@ import { loginWithPasskey, loginWithPassword } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Fingerprint, KeyRound } from "lucide-react";
 
 export default function LoginPage() {
@@ -59,104 +59,115 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">みらい家計簿</CardTitle>
-          <CardDescription>ログインしてください</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
-          )}
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg mb-4">
+            <span className="text-primary-foreground font-bold text-2xl">M</span>
+          </div>
+          <h1 className="text-[27px] font-bold text-foreground">みらい家計簿</h1>
+          <p className="text-sm text-muted-foreground mt-1">安全にログインしてください</p>
+        </div>
 
-          {mode === "passkey" ? (
-            <div className="space-y-4">
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={handlePasskeyLogin}
-                disabled={isLoading}
-              >
-                <Fingerprint className="mr-2" size={20} />
-                {isLoading ? "認証中..." : "パスキーでログイン"}
-              </Button>
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-muted-foreground hover:text-foreground underline"
-                  onClick={() => setMode("password")}
+        <Card className="shadow-xl border-0">
+          <CardContent className="pt-8 pb-8 space-y-6">
+            {error && (
+              <div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+            )}
+
+            {mode === "passkey" ? (
+              <div className="space-y-4">
+                <Button
+                  className="w-full h-12 text-base rounded-xl"
+                  size="lg"
+                  onClick={handlePasskeyLogin}
+                  disabled={isLoading}
                 >
-                  パスワードでログイン
-                </button>
+                  <Fingerprint className="mr-2" size={22} />
+                  {isLoading ? "認証中..." : "パスキーでログイン"}
+                </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setMode("password")}
+                  >
+                    パスワードでログイン
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">メールアドレス</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">パスワード</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="master-password">マスターパスワード</Label>
-                <Input
-                  id="master-password"
-                  type="password"
-                  value={masterPassword}
-                  onChange={(e) => setMasterPassword(e.target.value)}
-                  placeholder="E2EE暗号化用"
-                  required
-                />
-              </div>
-              {totpRequired && (
+            ) : (
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="totp-code">認証コード (TOTP)</Label>
+                  <Label htmlFor="email">メールアドレス</Label>
                   <Input
-                    id="totp-code"
-                    type="text"
-                    inputMode="numeric"
-                    value={totpCode}
-                    onChange={(e) => setTotpCode(e.target.value)}
-                    placeholder="6桁のコード"
-                    maxLength={6}
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    className="h-11 rounded-xl"
                     required
                   />
                 </div>
-              )}
-              <Button className="w-full" type="submit" disabled={isLoading}>
-                <KeyRound className="mr-2" size={20} />
-                {isLoading ? "ログイン中..." : "ログイン"}
-              </Button>
-              <div className="text-center">
-                <button
-                  type="button"
-                  className="text-sm text-muted-foreground hover:text-foreground underline"
-                  onClick={() => setMode("passkey")}
-                >
-                  パスキーでログイン
-                </button>
-              </div>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+                <div className="space-y-2">
+                  <Label htmlFor="password">パスワード</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-11 rounded-xl"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="master-password">マスターパスワード</Label>
+                  <Input
+                    id="master-password"
+                    type="password"
+                    value={masterPassword}
+                    onChange={(e) => setMasterPassword(e.target.value)}
+                    placeholder="E2EE暗号化用"
+                    className="h-11 rounded-xl"
+                    required
+                  />
+                </div>
+                {totpRequired && (
+                  <div className="space-y-2">
+                    <Label htmlFor="totp-code">認証コード (TOTP)</Label>
+                    <Input
+                      id="totp-code"
+                      type="text"
+                      inputMode="numeric"
+                      value={totpCode}
+                      onChange={(e) => setTotpCode(e.target.value)}
+                      placeholder="6桁のコード"
+                      className="h-11 rounded-xl"
+                      maxLength={6}
+                      required
+                    />
+                  </div>
+                )}
+                <Button className="w-full h-12 text-base rounded-xl" type="submit" disabled={isLoading}>
+                  <KeyRound className="mr-2" size={20} />
+                  {isLoading ? "ログイン中..." : "ログイン"}
+                </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setMode("passkey")}
+                  >
+                    パスキーでログイン
+                  </button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

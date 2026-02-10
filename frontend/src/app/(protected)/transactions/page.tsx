@@ -279,7 +279,7 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">取引一覧</h1>
+        <h1 className="text-[20px] sm:text-[27px] font-bold">取引一覧</h1>
         <Button onClick={handleOpenDialog}>
           <Plus size={16} className="mr-2" />
           取引を追加

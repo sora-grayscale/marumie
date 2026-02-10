@@ -253,7 +253,7 @@ function buildSummary(
   };
 }
 
-// FinancialSummaryCard（marumie準拠デザイン）
+// FinancialSummaryCard（marumie準拠デザイン - 大きい数字・全額表示）
 function FinancialSummaryCard({
   title,
   amount,
@@ -266,15 +266,17 @@ function FinancialSummaryCard({
   icon: React.ElementType;
 }) {
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg" style={{ backgroundColor: `${titleColor}15` }}>
-            <Icon size={22} style={{ color: titleColor }} />
+    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+      <CardContent className="pt-6 pb-6">
+        <div className="flex items-center gap-4">
+          <div className="shrink-0 p-3 rounded-xl" style={{ backgroundColor: `${titleColor}12` }}>
+            <Icon size={28} style={{ color: titleColor }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium" style={{ color: titleColor }}>{title}</p>
-            <p className="text-xl font-bold text-foreground truncate">{formatCurrency(amount)}</p>
+            <p className="text-sm font-semibold tracking-wide" style={{ color: titleColor }}>{title}</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground leading-tight mt-1 whitespace-nowrap">
+              {formatCurrency(amount)}
+            </p>
           </div>
         </div>
       </CardContent>
@@ -329,10 +331,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">ダッシュボード</h1>
+      <h1 className="text-[20px] sm:text-[27px] font-bold">ダッシュボード</h1>
 
       {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <FinancialSummaryCard
           title="今月の収入"
           amount={summary.totalIncome}

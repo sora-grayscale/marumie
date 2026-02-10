@@ -157,7 +157,7 @@ export default function BudgetPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">予算設定</h1>
+        <h1 className="text-[20px] sm:text-[27px] font-bold">予算設定</h1>
         <Button variant="outline" onClick={() => setDialogOpen(true)}>
           <Settings2 size={16} className="mr-2" />
           予算を編集

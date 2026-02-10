@@ -2,6 +2,7 @@ use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::crypto::encryption;
 use crate::csv::category::categorize;
 use crate::csv::detector::detect_institution as detect_csv_institution;
 use crate::error::AppError;
@@ -44,6 +45,7 @@ pub async fn import_csv(
     user_id: Uuid,
     account_id: Uuid,
     csv_data: &str,
+    dek: &[u8; 32],
 ) -> Result<usize, AppError> {
     let institution = detect_csv_institution(csv_data)
         .ok_or_else(|| AppError::CsvParse("Unknown CSV format".to_string()))?;
@@ -67,9 +69,9 @@ pub async fn import_csv(
         }
 
         let category = categorize(&record.description);
-        let amount_bytes = record.amount.as_bytes().to_vec();
-        let description_bytes = record.description.as_bytes().to_vec();
-        let category_bytes = category.as_bytes().to_vec();
+        let amount_bytes = encryption::encrypt(dek, record.amount.as_bytes())?;
+        let description_bytes = encryption::encrypt(dek, record.description.as_bytes())?;
+        let category_bytes = encryption::encrypt(dek, category.as_bytes())?;
 
         sqlx::query(
             "INSERT INTO transactions

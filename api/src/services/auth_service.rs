@@ -8,8 +8,8 @@ use crate::crypto::key_management;
 use crate::error::AppError;
 use crate::models::user::{CreateUserRequest, LoginRequest, User};
 
-/// Register a new user. Returns (User, recovery_key).
-pub async fn register(pool: &PgPool, req: CreateUserRequest) -> Result<(User, String), AppError> {
+/// Register a new user. Returns (User, recovery_key, dek).
+pub async fn register(pool: &PgPool, req: CreateUserRequest) -> Result<(User, String, [u8; 32]), AppError> {
     // Check if email already exists
     let existing: Option<(Uuid,)> =
         sqlx::query_as("SELECT id FROM users WHERE email = $1")
@@ -65,12 +65,12 @@ pub async fn register(pool: &PgPool, req: CreateUserRequest) -> Result<(User, St
     .execute(pool)
     .await?;
 
-    Ok((user, recovery_key))
+    Ok((user, recovery_key, dek))
 }
 
-/// Authenticate with email + password. Returns the User.
-/// If TOTP is enabled, the caller must verify the TOTP code separately.
-pub async fn login(pool: &PgPool, req: &LoginRequest) -> Result<User, AppError> {
+/// Authenticate with email + password. Returns (User, DEK).
+/// Derives the DEK from master_password so it can be stored in the session.
+pub async fn login(pool: &PgPool, req: &LoginRequest) -> Result<(User, [u8; 32]), AppError> {
     let user: User = sqlx::query_as("SELECT * FROM users WHERE email = $1")
         .bind(&req.email)
         .fetch_optional(pool)
@@ -104,7 +104,10 @@ pub async fn login(pool: &PgPool, req: &LoginRequest) -> Result<User, AppError> 
         verify_totp_code(totp_secret, &user.email, totp_code)?;
     }
 
-    Ok(user)
+    // Derive DEK from master_password
+    let dek = get_user_dek(pool, user.id, &req.master_password).await?;
+
+    Ok((user, dek))
 }
 
 /// Verify a TOTP code against a stored secret.
@@ -365,7 +368,7 @@ pub async fn create_initial_user(pool: &PgPool) -> Result<(), AppError> {
         master_password,
     };
 
-    let (user, recovery_key) = register(pool, req).await?;
+    let (user, _recovery_key, _dek) = register(pool, req).await?;
 
     // Set must_change_password = true
     sqlx::query("UPDATE users SET must_change_password = true WHERE id = $1")
@@ -374,7 +377,7 @@ pub async fn create_initial_user(pool: &PgPool) -> Result<(), AppError> {
         .await?;
 
     tracing::info!("Initial user created: {}", email);
-    tracing::info!("Recovery key (save this!): {}", recovery_key);
+    // Recovery key is returned to the user via API response only — never logged.
 
     Ok(())
 }

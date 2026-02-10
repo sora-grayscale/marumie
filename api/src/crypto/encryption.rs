@@ -44,6 +44,30 @@ pub fn decrypt(key: &[u8; 32], data: &[u8]) -> Result<Vec<u8>, AppError> {
         .map_err(|e| AppError::Crypto(format!("Decryption failed: {}", e)))
 }
 
+/// Decrypt data, with fallback for legacy unencrypted (raw UTF-8) data.
+/// AES-256-GCM minimum: 12 (nonce) + 16 (GCM tag) = 28 bytes.
+/// Data shorter than this, or failing decryption, is treated as legacy plaintext.
+pub fn decrypt_or_raw(key: &[u8; 32], data: &[u8]) -> Vec<u8> {
+    if data.len() < 28 {
+        tracing::warn!(
+            data_len = data.len(),
+            "decrypt_or_raw: data too short for AES-256-GCM, treating as legacy plaintext"
+        );
+        return data.to_vec();
+    }
+    match decrypt(key, data) {
+        Ok(plaintext) => plaintext,
+        Err(e) => {
+            tracing::warn!(
+                data_len = data.len(),
+                error = %e,
+                "decrypt_or_raw: decryption failed, treating as legacy plaintext"
+            );
+            data.to_vec()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -29,3 +29,4 @@ thiserror = "2"
 dotenvy = "0.15"
 url = "2"
 totp-rs = { version = "5", features = ["otpauth", "gen_secret"] }
+zeroize = { version = "1", features = ["derive"] }

@@ -6,11 +6,24 @@ use axum::routing::{get, post, put};
 use axum::{Json, Router};
 use serde::Deserialize;
 
-use crate::auth::session::{create_session, delete_session, Session};
+use crate::auth::session::{create_session, delete_session, unlock_session, Session};
 use crate::error::AppError;
 use crate::models::user::{CreateUserRequest, LoginRequest, PasswordChangeRequest, UserResponse};
 use crate::services::auth_service;
 use crate::AppState;
+
+/// Build a session cookie string with HttpOnly + SameSite flags.
+/// Secure flag is added in production (when COOKIE_SECURE != "false").
+fn session_cookie(session_id: uuid::Uuid) -> String {
+    let secure = std::env::var("COOKIE_SECURE")
+        .map(|v| v != "false")
+        .unwrap_or(true);
+    let secure_flag = if secure { "; Secure" } else { "" };
+    format!(
+        "session_id={}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000{}",
+        session_id, secure_flag
+    )
+}
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -18,6 +31,7 @@ pub fn router() -> Router<AppState> {
         .route("/login", post(login))
         .route("/logout", post(logout))
         .route("/me", get(me))
+        .route("/unlock", post(unlock))
         .route("/password", put(change_password))
         .route("/totp/setup", post(totp_setup))
         .route("/totp/enable", post(totp_enable))
@@ -33,17 +47,13 @@ async fn register(
     State(state): State<AppState>,
     Json(req): Json<CreateUserRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let (user, recovery_key) = auth_service::register(&state.pool, req).await?;
-    let session_id = create_session(&state.pool, user.id).await?;
-
-    let cookie = format!(
-        "session_id={}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000",
-        session_id
-    );
+    let (user, recovery_key, dek) = auth_service::register(&state.pool, req).await?;
+    let session_id =
+        create_session(&state.pool, user.id, Some(&dek), &state.session_key).await?;
 
     Ok((
         StatusCode::CREATED,
-        [(SET_COOKIE, cookie)],
+        [(SET_COOKIE, session_cookie(session_id))],
         Json(serde_json::json!({
             "user": UserResponse::from(user),
             "recovery_key": recovery_key,
@@ -55,16 +65,12 @@ async fn login(
     State(state): State<AppState>,
     Json(req): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    let user = auth_service::login(&state.pool, &req).await?;
-    let session_id = create_session(&state.pool, user.id).await?;
-
-    let cookie = format!(
-        "session_id={}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000",
-        session_id
-    );
+    let (user, dek) = auth_service::login(&state.pool, &req).await?;
+    let session_id =
+        create_session(&state.pool, user.id, Some(&dek), &state.session_key).await?;
 
     Ok((
-        [(SET_COOKIE, cookie)],
+        [(SET_COOKIE, session_cookie(session_id))],
         Json(serde_json::json!({
             "user": UserResponse::from(user),
         })),
@@ -77,7 +83,7 @@ async fn logout(
 ) -> Result<impl IntoResponse, AppError> {
     delete_session(&state.pool, session.id).await?;
 
-    let cookie = "session_id=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0";
+    let cookie = "session_id=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0";
 
     Ok(([(SET_COOKIE, cookie.to_string())], StatusCode::NO_CONTENT))
 }
@@ -88,6 +94,24 @@ async fn me(
 ) -> Result<Json<UserResponse>, AppError> {
     let user = auth_service::get_user(&state.pool, session.user_id).await?;
     Ok(Json(UserResponse::from(user)))
+}
+
+/// Unlock an existing session by providing the master_password.
+/// Used after WebAuthn login or when session was created without DEK.
+#[derive(Debug, Deserialize)]
+struct UnlockRequest {
+    master_password: String,
+}
+
+async fn unlock(
+    State(state): State<AppState>,
+    session: Session,
+    Json(req): Json<UnlockRequest>,
+) -> Result<StatusCode, AppError> {
+    let dek =
+        auth_service::get_user_dek(&state.pool, session.user_id, &req.master_password).await?;
+    unlock_session(&state.pool, session.id, &dek, &state.session_key).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn change_password(
@@ -172,12 +196,11 @@ async fn webauthn_register_start(
     let reg_state_json = serde_json::to_value(&reg_state)
         .map_err(|e| AppError::Internal(format!("Serialize reg state: {}", e)))?;
 
-    // Store reg_state in a temporary way (in production, use session storage)
     sqlx::query(
         "INSERT INTO sessions (id, user_id, expires_at) VALUES ($1, $2, NOW() + INTERVAL '5 minutes')
          ON CONFLICT (id) DO UPDATE SET expires_at = NOW() + INTERVAL '5 minutes'"
     )
-    .bind(uuid::Uuid::new_v4()) // temp storage key
+    .bind(uuid::Uuid::new_v4())
     .bind(session.user_id)
     .execute(&state.pool)
     .await?;
@@ -255,19 +278,18 @@ async fn webauthn_login_finish(
     let user_id: uuid::Uuid = serde_json::from_value(body["user_id"].clone())
         .map_err(|e| AppError::BadRequest(format!("Invalid user_id: {}", e)))?;
 
-    let session_id = create_session(&state.pool, user_id).await?;
-
-    let cookie = format!(
-        "session_id={}; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000",
-        session_id
-    );
+    // WebAuthn login: no master_password available, session created without DEK.
+    // User must call POST /api/auth/unlock to provide master_password and unlock E2EE.
+    let session_id =
+        create_session(&state.pool, user_id, None, &state.session_key).await?;
 
     let user = auth_service::get_user(&state.pool, user_id).await?;
 
     Ok((
-        [(SET_COOKIE, cookie)],
+        [(SET_COOKIE, session_cookie(session_id))],
         Json(serde_json::json!({
             "user": UserResponse::from(user),
+            "encryption_unlocked": false,
         })),
     ))
 }

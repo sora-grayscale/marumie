@@ -54,8 +54,9 @@ async fn import_csv(
         .account_id
         .ok_or_else(|| AppError::BadRequest("account_id required for import".to_string()))?;
 
+    let dek = session.require_dek()?;
     let count =
-        csv_service::import_csv(&state.pool, session.user_id, account_id, &body.csv_data).await?;
+        csv_service::import_csv(&state.pool, session.user_id, account_id, &body.csv_data, dek).await?;
 
     Ok((
         StatusCode::CREATED,

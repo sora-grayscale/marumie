@@ -20,6 +20,8 @@ pub mod error;
 pub struct AppState {
     pub pool: sqlx::PgPool,
     pub webauthn: std::sync::Arc<webauthn_rs::Webauthn>,
+    /// Server-side key for encrypting DEK in session storage (defense-in-depth).
+    pub session_key: [u8; 32],
 }
 
 #[tokio::main]
@@ -49,6 +51,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("Failed to create initial user: {}", e);
     }
 
+    // Session encryption key: protects DEK stored in session table.
+    // If not set, generates an ephemeral key (sessions won't survive restarts).
+    let session_key: [u8; 32] = {
+        let key_hex = std::env::var("SESSION_ENCRYPTION_KEY").unwrap_or_else(|_| {
+            tracing::warn!(
+                "SESSION_ENCRYPTION_KEY not set — generating ephemeral key. \
+                 Active sessions will be invalidated on restart."
+            );
+            let mut key = [0u8; 32];
+            rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut key);
+            hex::encode(key)
+        });
+        let key_bytes = hex::decode(&key_hex)
+            .expect("SESSION_ENCRYPTION_KEY must be valid hex (64 hex chars = 32 bytes)");
+        assert!(
+            key_bytes.len() == 32,
+            "SESSION_ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars)"
+        );
+        let mut key = [0u8; 32];
+        key.copy_from_slice(&key_bytes);
+        key
+    };
+
     let rp_id = std::env::var("WEBAUTHN_RP_ID").unwrap_or_else(|_| "localhost".to_string());
     let rp_origin = std::env::var("WEBAUTHN_RP_ORIGIN")
         .unwrap_or_else(|_| "http://localhost:3000".to_string());
@@ -62,6 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState {
         pool,
         webauthn: std::sync::Arc::new(webauthn),
+        session_key,
     };
 
     let cors = CorsLayer::new()

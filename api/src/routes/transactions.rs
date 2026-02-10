@@ -67,8 +67,9 @@ async fn list_transactions(
     session: Session,
     Query(query): Query<TransactionQuery>,
 ) -> Result<Json<Vec<TransactionResponse>>, AppError> {
+    let dek = session.require_dek()?;
     let transactions =
-        transaction_service::list_transactions(&state.pool, session.user_id, &query).await?;
+        transaction_service::list_transactions(&state.pool, session.user_id, &query, dek).await?;
     Ok(Json(transactions))
 }
 
@@ -77,8 +78,9 @@ async fn create_transaction(
     session: Session,
     Json(req): Json<CreateTransactionRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    let dek = session.require_dek()?;
     let transaction =
-        transaction_service::create_transaction(&state.pool, session.user_id, req).await?;
+        transaction_service::create_transaction(&state.pool, session.user_id, req, dek).await?;
     Ok((StatusCode::CREATED, Json(transaction)))
 }
 
@@ -87,8 +89,9 @@ async fn get_transaction(
     session: Session,
     Path(id): Path<Uuid>,
 ) -> Result<Json<TransactionResponse>, AppError> {
+    let dek = session.require_dek()?;
     let transaction =
-        transaction_service::get_transaction(&state.pool, session.user_id, id).await?;
+        transaction_service::get_transaction(&state.pool, session.user_id, id, dek).await?;
     Ok(Json(transaction))
 }
 

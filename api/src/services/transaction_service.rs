@@ -2,6 +2,7 @@ use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::crypto::encryption;
 use crate::error::AppError;
 use crate::models::transaction::{
     CreateTransactionRequest, Transaction, TransactionQuery, TransactionResponse,
@@ -12,6 +13,7 @@ pub async fn list_transactions(
     pool: &PgPool,
     user_id: Uuid,
     query: &TransactionQuery,
+    dek: &[u8; 32],
 ) -> Result<Vec<TransactionResponse>, AppError> {
     let limit = query.limit.unwrap_or(100).min(1000);
     let offset = query.offset.unwrap_or(0);
@@ -62,8 +64,6 @@ pub async fn list_transactions(
 
     let transactions: Vec<Transaction> = q.bind(limit).bind(offset).fetch_all(pool).await?;
 
-    // Note: In production, decryption would use the user's DEK.
-    // For now, return encrypted data as-is (base64).
     let responses: Vec<TransactionResponse> = transactions
         .into_iter()
         .map(|t| TransactionResponse {
@@ -73,23 +73,35 @@ pub async fn list_transactions(
             transaction_type: t.transaction_type,
             amount: base64::Engine::encode(
                 &base64::engine::general_purpose::STANDARD,
-                &t.amount_encrypted,
+                &encryption::decrypt_or_raw(dek, &t.amount_encrypted),
             ),
             description: base64::Engine::encode(
                 &base64::engine::general_purpose::STANDARD,
-                &t.description_encrypted,
+                &encryption::decrypt_or_raw(dek, &t.description_encrypted),
             ),
             category: t.category_encrypted.map(|c| {
-                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &c)
+                base64::Engine::encode(
+                    &base64::engine::general_purpose::STANDARD,
+                    &encryption::decrypt_or_raw(dek, &c),
+                )
             }),
             subcategory: t.subcategory_encrypted.map(|c| {
-                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &c)
+                base64::Engine::encode(
+                    &base64::engine::general_purpose::STANDARD,
+                    &encryption::decrypt_or_raw(dek, &c),
+                )
             }),
             memo: t.memo_encrypted.map(|m| {
-                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &m)
+                base64::Engine::encode(
+                    &base64::engine::general_purpose::STANDARD,
+                    &encryption::decrypt_or_raw(dek, &m),
+                )
             }),
             payment_method: t.payment_method_encrypted.map(|p| {
-                base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &p)
+                base64::Engine::encode(
+                    &base64::engine::general_purpose::STANDARD,
+                    &encryption::decrypt_or_raw(dek, &p),
+                )
             }),
             created_at: t.created_at,
         })
@@ -103,6 +115,7 @@ pub async fn create_transaction(
     pool: &PgPool,
     user_id: Uuid,
     req: CreateTransactionRequest,
+    dek: &[u8; 32],
 ) -> Result<TransactionResponse, AppError> {
     let id = Uuid::new_v4();
 
@@ -122,13 +135,28 @@ pub async fn create_transaction(
         return Err(AppError::Conflict("Duplicate transaction detected".to_string()));
     }
 
-    // For now, store amount/description as raw bytes (in production, encrypt with DEK)
-    let amount_bytes = req.amount.as_bytes().to_vec();
-    let description_bytes = req.description.as_bytes().to_vec();
-    let category_bytes = req.category.as_ref().map(|c| c.as_bytes().to_vec());
-    let subcategory_bytes = req.subcategory.as_ref().map(|c| c.as_bytes().to_vec());
-    let memo_bytes = req.memo.as_ref().map(|m| m.as_bytes().to_vec());
-    let payment_method_bytes = req.payment_method.as_ref().map(|p| p.as_bytes().to_vec());
+    let amount_bytes = encryption::encrypt(dek, req.amount.as_bytes())?;
+    let description_bytes = encryption::encrypt(dek, req.description.as_bytes())?;
+    let category_bytes = req
+        .category
+        .as_ref()
+        .map(|c| encryption::encrypt(dek, c.as_bytes()))
+        .transpose()?;
+    let subcategory_bytes = req
+        .subcategory
+        .as_ref()
+        .map(|c| encryption::encrypt(dek, c.as_bytes()))
+        .transpose()?;
+    let memo_bytes = req
+        .memo
+        .as_ref()
+        .map(|m| encryption::encrypt(dek, m.as_bytes()))
+        .transpose()?;
+    let payment_method_bytes = req
+        .payment_method
+        .as_ref()
+        .map(|p| encryption::encrypt(dek, p.as_bytes()))
+        .transpose()?;
 
     let txn: Transaction = sqlx::query_as(
         "INSERT INTO transactions
@@ -157,12 +185,38 @@ pub async fn create_transaction(
         account_id: txn.account_id,
         date: txn.date,
         transaction_type: txn.transaction_type,
-        amount: req.amount,
-        description: req.description,
-        category: req.category,
-        subcategory: req.subcategory,
-        memo: req.memo,
-        payment_method: req.payment_method,
+        amount: base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            req.amount.as_bytes(),
+        ),
+        description: base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            req.description.as_bytes(),
+        ),
+        category: req.category.map(|c| {
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                c.as_bytes(),
+            )
+        }),
+        subcategory: req.subcategory.map(|c| {
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                c.as_bytes(),
+            )
+        }),
+        memo: req.memo.map(|m| {
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                m.as_bytes(),
+            )
+        }),
+        payment_method: req.payment_method.map(|p| {
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                p.as_bytes(),
+            )
+        }),
         created_at: txn.created_at,
     })
 }
@@ -172,6 +226,7 @@ pub async fn get_transaction(
     pool: &PgPool,
     user_id: Uuid,
     id: Uuid,
+    dek: &[u8; 32],
 ) -> Result<TransactionResponse, AppError> {
     let txn: Transaction = sqlx::query_as(
         "SELECT * FROM transactions WHERE id = $1 AND user_id = $2",
@@ -189,23 +244,35 @@ pub async fn get_transaction(
         transaction_type: txn.transaction_type,
         amount: base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            &txn.amount_encrypted,
+            &encryption::decrypt_or_raw(dek, &txn.amount_encrypted),
         ),
         description: base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            &txn.description_encrypted,
+            &encryption::decrypt_or_raw(dek, &txn.description_encrypted),
         ),
         category: txn.category_encrypted.map(|c| {
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &c)
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                &encryption::decrypt_or_raw(dek, &c),
+            )
         }),
         subcategory: txn.subcategory_encrypted.map(|c| {
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &c)
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                &encryption::decrypt_or_raw(dek, &c),
+            )
         }),
         memo: txn.memo_encrypted.map(|m| {
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &m)
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                &encryption::decrypt_or_raw(dek, &m),
+            )
         }),
         payment_method: txn.payment_method_encrypted.map(|p| {
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &p)
+            base64::Engine::encode(
+                &base64::engine::general_purpose::STANDARD,
+                &encryption::decrypt_or_raw(dek, &p),
+            )
         }),
         created_at: txn.created_at,
     })

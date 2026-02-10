@@ -1,10 +1,11 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::crypto::encryption;
 use crate::error::AppError;
 use crate::models::budget::{Budget, BudgetResponse, CreateBudgetRequest, UpdateBudgetRequest};
 
-pub async fn list_budgets(pool: &PgPool, user_id: Uuid) -> Result<Vec<BudgetResponse>, AppError> {
+pub async fn list_budgets(pool: &PgPool, user_id: Uuid, dek: &[u8; 32]) -> Result<Vec<BudgetResponse>, AppError> {
     let budgets: Vec<Budget> = sqlx::query_as(
         "SELECT * FROM budgets WHERE user_id = $1 ORDER BY year DESC, month DESC",
     )
@@ -19,7 +20,7 @@ pub async fn list_budgets(pool: &PgPool, user_id: Uuid) -> Result<Vec<BudgetResp
             category: b.category,
             amount: base64::Engine::encode(
                 &base64::engine::general_purpose::STANDARD,
-                &b.amount_encrypted,
+                &encryption::decrypt_or_raw(dek, &b.amount_encrypted),
             ),
             year: b.year,
             month: b.month,
@@ -32,9 +33,10 @@ pub async fn create_budget(
     pool: &PgPool,
     user_id: Uuid,
     req: CreateBudgetRequest,
+    dek: &[u8; 32],
 ) -> Result<BudgetResponse, AppError> {
     let id = Uuid::new_v4();
-    let amount_bytes = req.amount.as_bytes().to_vec();
+    let amount_bytes = encryption::encrypt(dek, req.amount.as_bytes())?;
 
     let budget: Budget = sqlx::query_as(
         "INSERT INTO budgets (id, user_id, category, amount_encrypted, year, month)
@@ -53,7 +55,10 @@ pub async fn create_budget(
     Ok(BudgetResponse {
         id: budget.id,
         category: budget.category,
-        amount: req.amount,
+        amount: base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            req.amount.as_bytes(),
+        ),
         year: budget.year,
         month: budget.month,
         created_at: budget.created_at,
@@ -64,6 +69,7 @@ pub async fn get_budget(
     pool: &PgPool,
     user_id: Uuid,
     id: Uuid,
+    dek: &[u8; 32],
 ) -> Result<BudgetResponse, AppError> {
     let budget: Budget = sqlx::query_as(
         "SELECT * FROM budgets WHERE id = $1 AND user_id = $2",
@@ -79,7 +85,7 @@ pub async fn get_budget(
         category: budget.category,
         amount: base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            &budget.amount_encrypted,
+            &encryption::decrypt_or_raw(dek, &budget.amount_encrypted),
         ),
         year: budget.year,
         month: budget.month,
@@ -92,6 +98,7 @@ pub async fn update_budget(
     user_id: Uuid,
     id: Uuid,
     req: UpdateBudgetRequest,
+    dek: &[u8; 32],
 ) -> Result<BudgetResponse, AppError> {
     let current: Budget = sqlx::query_as(
         "SELECT * FROM budgets WHERE id = $1 AND user_id = $2",
@@ -103,10 +110,10 @@ pub async fn update_budget(
     .ok_or_else(|| AppError::NotFound("Budget not found".to_string()))?;
 
     let category = req.category.unwrap_or(current.category);
-    let amount_bytes = req
-        .amount
-        .map(|a| a.as_bytes().to_vec())
-        .unwrap_or(current.amount_encrypted);
+    let amount_bytes = match req.amount {
+        Some(ref a) => encryption::encrypt(dek, a.as_bytes())?,
+        None => current.amount_encrypted,
+    };
 
     let budget: Budget = sqlx::query_as(
         "UPDATE budgets SET category = $1, amount_encrypted = $2, updated_at = NOW()
@@ -125,7 +132,7 @@ pub async fn update_budget(
         category: budget.category,
         amount: base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
-            &budget.amount_encrypted,
+            &encryption::decrypt_or_raw(dek, &budget.amount_encrypted),
         ),
         year: budget.year,
         month: budget.month,
